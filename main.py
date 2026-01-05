@@ -13,8 +13,6 @@ from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 
 config = Config()
 
-print(config)
-
 device = config.device
 
 model = DeepSDFModel(
