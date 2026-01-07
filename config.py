@@ -16,7 +16,7 @@ class Config:
     test_ratio: float = 0.1
 
     # -------------------- Model settings --------------------
-    latent_dim: int = 1
+    latent_dim: int = 3
     input_values: int = 3
     number_of_hidden_layers: int = 4
     hidden_layers_neurons: int = 128
@@ -34,9 +34,9 @@ class Config:
 
     # Loss
     latent_l2: float = 1e-4
-    sdf_clamp: float = 1.0
-    surface_w: float = 50.0
-    surface_tau: float = 0.05
+    sdf_clamp: float = 5
+    surface_w: float = 5.0
+    surface_tau: float = 0.1
 
     # Sampling
     epochs: int = 50

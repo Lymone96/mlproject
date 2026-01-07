@@ -103,7 +103,7 @@ for epoch in range(config.epochs):
         embedding = latents(s)
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
-        loss = sdf_loss(pred, t, config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
         loss.backward()
         opt.step()
         opt.zero_grad(set_to_none=True)
@@ -113,7 +113,7 @@ for epoch in range(config.epochs):
 
     # Validation
     model.eval()
-    validation_dataloader = DataLoader(validation_set, config.batch_size, shuffle=True)
+    validation_dataloader = DataLoader(validation_set, config.batch_size, shuffle=False)
     for i, ((x, s), t) in enumerate(validation_dataloader):
         if i == config.validation_steps_per_epoch:
             break
@@ -121,7 +121,7 @@ for epoch in range(config.epochs):
         embedding = latents(s)
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
-        loss = sdf_loss(pred, t, config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
 
         validation_losses.append(loss.mean().cpu().item())
 
