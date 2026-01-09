@@ -58,4 +58,3 @@ class DeepSDFModel(nn.Module):
 
     def forward(self, xyz_lambda):
         return self.mlp(xyz_lambda)
-

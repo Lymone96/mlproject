@@ -51,9 +51,9 @@ class ShapeDataset(Dataset):
 dataset = ShapeDataset(Path(config.dataset_directory), device)
 training_set, validation_set, test_set = torch.utils.data.random_split(dataset, [config.train_ratio, config.val_ratio, config.test_ratio])
 
-print(len(training_set))
-print(len(validation_set))
-print(len(test_set))
+# print(len(training_set))
+# print(len(validation_set))
+# print(len(test_set))
 
 latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
 nn.init.normal_(latents.weight, mean=0.0, std=0.01)
@@ -103,7 +103,9 @@ for epoch in range(config.epochs):
         embedding = latents(s)
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
+
         loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
+
         loss.backward()
         opt.step()
         opt.zero_grad(set_to_none=True)
@@ -132,5 +134,16 @@ for epoch in range(config.epochs):
     writer.add_scalar("Loss/validation", validation_loss, epoch)
 
     print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
+
+
+# Model Export 
+
+def save_network_and_latents(model, latents):
+
+    torch.save(model, Path(config.checkpoints_directory, config.model_filename))
+    torch.save(latents.state_dict(), Path(config.checkpoints_directory, config.latent_filename))
+
+if config.save_network:
+    save_network_and_latents(model, latents)
 
 writer.close()

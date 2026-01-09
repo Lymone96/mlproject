@@ -11,7 +11,8 @@ def load_txt_shapes(folder: Path):
             continue
 
         key = os.path.splitext(f.name)[0]
-        sid = int(re.search(r"(\d+)$", key).group(1))
+        number_match = re.search(r"(\d+)(?!.*\d)", key).group(1)
+        sid = int(number_match)
         data = torch.tensor(pd.read_csv(f, skiprows=6).values, dtype=torch.float32)
-        shapes[key] = (data, sid) # {"Cylinder0": (Tensor, 0)}
+        shapes[key] = (data, sid)  # {"ShapeName-G##-IDNumber": (DataTensor, IDNumber)}
     return shapes
