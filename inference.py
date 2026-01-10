@@ -60,32 +60,54 @@ if __name__ == "__main__":
     def gui_lambda_expanded():
         global sliders_values
         imgui.set_next_window_position(500, 50, imgui.FIRST_USE_EVER)
-        imgui.set_next_window_size(250, 80, imgui.FIRST_USE_EVER)
+        imgui.set_next_window_size(250, 400, imgui.FIRST_USE_EVER)
+
         if imgui.begin("Lambda Control")[0]:
             updated_any = False
+
+            # Sliders
             for i in range(lambda_dimension):
                 slider_label = f"Lambda {i}"
-
                 updated, new_value = imgui.slider_float(
                     slider_label,
                     sliders_values[i],
-                    min_value = mins_lambda[i],
+                    min_value=mins_lambda[i],
                     max_value=maxs_lambda[i]
-                    )
-
+                )
                 if updated:
                     sliders_values[i] = new_value
                     updated_any = True
-            if updated_any:
-                    # Re-evaluate shape with new lambda
+
+            imgui.separator()
+            imgui.text("Presets (Trained Shapes)")
+
+            # Buttons
+            for k in range(num_of_shapes):
+                button_label = f"Trained Shape {k}"
+
+                if imgui.button(button_label):
+                    # Retrieve the latent vector for index 'k'
                     with torch.no_grad():
-                        for j in range(lambda_dimension):
-                            latents[:, j] = torch.full((pts.shape[0],), sliders_values[j], dtype=torch.float32).to(device)
-                        samples = torch.hstack((pts, latents))
-                        new_pred = model(samples)
-                    
-                        # update volume in renderable
-                        pred_vol.volume = new_pred.reshape(shape).cpu().numpy()
+                        # Use .tolist() to update the slider state
+                        latent_vector = latent_matrix.weight[k].cpu().numpy()
+
+                        # Update the global slider values list
+                        sliders_values = latent_vector.tolist()
+                        updated_any = True
+
+            if updated_any:
+                # Re-evaluate shape with new lambda
+                with torch.no_grad():
+                    # Prepare latents for the whole grid (pts.shape[0], lambda_dimension)
+                    # Convert list back to tensor and broadcast to all points
+                    current_latents_tensor = torch.tensor(sliders_values, device=device, dtype=torch.float32)
+                    latents_grid = current_latents_tensor.repeat(pts.shape[0], 1)
+
+                    samples = torch.hstack((pts, latents_grid))
+                    new_pred = model(samples)
+
+                    # Update volume in renderable
+                    pred_vol.volume = new_pred.reshape(shape).cpu().numpy()
         imgui.end()
 
     slider_preset = 0.0
@@ -97,7 +119,7 @@ if __name__ == "__main__":
         sid = int(re.search(r"(\d+)(?!.*\d)", config.reference_sample_name).group(1))
         reference = np.array(pd.read_csv(Path("data_storage", config.reference_sample_name), skiprows=6).values[:, 3], np.float32).reshape(shape)
 
-        # Extract latents from Embedding for reference shape visualization 
+        # Extract latents from Embedding to match prediction to reference shape 
         latents = torch.empty(pts.shape[0], lambda_dimension).to(device)
         latents = latent_matrix(torch.full((pts.shape[0], 1), sid, dtype=torch.int32).to(device))[:, 0] #These indexing removes one extra dimension, which is artificially created 
         samples = torch.hstack((pts, latents)).to(device)
