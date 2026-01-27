@@ -76,8 +76,6 @@ if __name__ == "__main__":
             ]
         )
 
-
-
         def sdf_loss(pred, sdf, delta, w, tau):
             if delta is not None:
                 pred = pred.clamp(-delta, delta)
@@ -151,14 +149,11 @@ if __name__ == "__main__":
                 "latent_dim": config.latent_dim,
             })
 
-
             print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
 
         print(f"write {surface_w} dimension")
 
-
-        directory = Path(
-            r"C:\Users\gijs\tu_delft_local\2025-2026\Q2\DSAIE\training_for_set_C_varrying_surface_w")
+        directory = Path(config.looped_training_directory)
 
         folder_name = f"network_with_{surface_w}_surface"
 
@@ -183,7 +178,4 @@ if __name__ == "__main__":
     # with open(file_path, "wb") as handle:
     #     pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
-
-
-            # print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
+    # print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")

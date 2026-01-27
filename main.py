@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from pathlib import Path
-from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from typing import Dict, Tuple
 
@@ -11,10 +10,10 @@ from dataset import load_txt_shapes
 
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 
-
-torch.cuda.manual_seed_all(seed=42)
-
 config = Config()
+
+if config.cuda_manual_seed == True:
+    torch.cuda.manual_seed_all(seed=42)
 
 device = config.device
 
@@ -25,8 +24,6 @@ model = DeepSDFModel(
     config.output_values,
     config.activation_function,
 )
-
-
 
 class ShapeDataset(Dataset):
     def __init__(self, directory: Path, device):
@@ -41,7 +38,6 @@ class ShapeDataset(Dataset):
             sid_samples.append(sids)
             xyz_samples.append(xyz_sdf[:, :3])
             targets.append(xyz_sdf[:, 3])
-            a = 1
         self.xyz_samples = torch.concat(xyz_samples).to(device)
         self.sid_samples = torch.concat(sid_samples).to(device)
         self.targets = torch.concat(targets).to(device)
@@ -56,7 +52,6 @@ class ShapeDataset(Dataset):
 
 dataset = ShapeDataset(Path(config.dataset_directory), device)
 training_set, validation_set, test_set = torch.utils.data.random_split(dataset, [config.train_ratio, config.val_ratio, config.test_ratio])
-
 
 
 latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
@@ -75,9 +70,6 @@ opt = torch.optim.Adam(
         { "params": latents.parameters(), "lr": config.lr_latent },
     ]
 )
-
-writer = SummaryWriter("tensorboard")
-
 
 def sdf_loss(pred, sdf, w):
     a = sdf.abs()
@@ -130,9 +122,6 @@ for epoch in range(config.epochs):
     training_loss = np.array(training_losses).mean()
     validation_loss = np.array(validation_losses).mean()
 
-    writer.add_scalar("Loss/training", training_loss, epoch)
-    writer.add_scalar("Loss/validation", validation_loss, epoch)
-
     print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
 
 
@@ -144,5 +133,3 @@ def save_network_and_latents(model, latents):
 
 if config.save_network:
     save_network_and_latents(model, latents)
-
-writer.close()

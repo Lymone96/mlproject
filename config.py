@@ -3,8 +3,9 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # ------------------- Paths ------------------------
-    dataset_directory: str = r"C:\Users\gijs\OneDrive - Delft University of Technology\Bestanden van Gabriele Mylonopoulos - CIEM2003 - WIND Group\003 - Training Datasets and 3D Models - by stage\Exp 1b - One design, multiple parameters variation\E1b - Dataset"
-    checkpoints_directory: str = r"C:\Users\gijs\tu_delft_local\2025-2026\Q2\DSAIE\models"
+    dataset_directory: str = r"./data_storage"
+    checkpoints_directory: str = r"./checkpoints"
+    looped_training_directory: str = r"./looped_training_results"
     model_filename: str = "model.pth"
     latent_filename: str = "latent.pth"
     train_new_model: bool = True
@@ -21,12 +22,13 @@ class Config:
     number_of_hidden_layers: int = 4
     hidden_layers_neurons: int = 128
     output_values: int = 1
-    activation_function: str = "relu"
+    activation_function: str = "leakyrelu"
 
     # -------------------- Training settings --------------------
 
     # Device
     device: str = "cuda"  # "cuda" or "cpu"
+    cuda_manual_seed: bool = True
 
     # Optimization
     lr_model: float = 1e-3
@@ -36,7 +38,6 @@ class Config:
     latent_l2: float = 1e-4
     surface_w: float = 5
 
-
     # Sampling
     epochs: int = 100
     batch_size: int = 2048
@@ -45,7 +46,7 @@ class Config:
 
     # -------------------- Visualization settings --------------------
     per_axis_domain_length: int = 1  #From -0.5 to +0.5 by dataset settings
-    per_axis_sample_number: int = 100 #Grid sample size (#x,#y,#z) is (100,100,100) by dataset settings
+    per_axis_sample_number: int = 25 #Grid sample size (#x,#y,#z) is (100,100,100) by dataset settings
     add_reference_toggle: bool = True
-    reference_sample_name: str = "WindFloat-1.txt"
+    reference_sample_name: str = "Cylinder-G25-0.txt"
 

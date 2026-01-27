@@ -5,3 +5,4 @@ __pycache__
 /tensorboard
 scratchpad.py
 imgui.ini
+/looped_training_results/*
