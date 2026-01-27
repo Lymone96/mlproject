@@ -39,16 +39,19 @@ class DeepSDFModel(nn.Module):
         super().__init__()
 
         activation = get_activation(activation_function)
+        dropout = 0.3
 
         layers = []
 
         # Input → first hidden layer
         layers.append(nn.Linear(input_values, hidden_layers_neurons))
+        layers.append(nn.Dropout(dropout))
         layers.append(activation)
 
         # Hidden layers
         for _ in range(number_of_hidden_layers - 1):
             layers.append(nn.Linear(hidden_layers_neurons, hidden_layers_neurons))
+            layers.append(nn.Dropout(dropout))
             layers.append(activation)
 
         # Last layer → output

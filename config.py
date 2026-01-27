@@ -3,12 +3,12 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # ------------------- Paths ------------------------
-    dataset_directory: str = "./data_storage/"
-    checkpoints_directory: str = "./checkpoints/"
+    dataset_directory: str = r"C:\Users\gijs\OneDrive - Delft University of Technology\Bestanden van Gabriele Mylonopoulos - CIEM2003 - WIND Group\003 - Training Datasets and 3D Models - by stage\Exp 1b - One design, multiple parameters variation\E1b - Dataset"
+    checkpoints_directory: str = r"C:\Users\gijs\tu_delft_local\2025-2026\Q2\DSAIE\models"
     model_filename: str = "model.pth"
     latent_filename: str = "latent.pth"
     train_new_model: bool = True
-    save_network: bool = True 
+    save_network: bool = True
 
     # -------------------- Dataset settings --------------------
     train_ratio: float = 0.7
@@ -16,7 +16,7 @@ class Config:
     test_ratio: float = 0.1
 
     # -------------------- Model settings --------------------
-    latent_dim: int = 2
+    latent_dim: int = 1
     input_values: int = 3
     number_of_hidden_layers: int = 4
     hidden_layers_neurons: int = 128
@@ -34,12 +34,11 @@ class Config:
 
     # Loss
     latent_l2: float = 1e-4
-    sdf_clamp: float = 5
-    surface_w: float = 5.0
-    surface_tau: float = 0.1
+    surface_w: float = 5
+
 
     # Sampling
-    epochs: int = 20
+    epochs: int = 100
     batch_size: int = 2048
     train_steps_per_epoch: int = 200
     validation_steps_per_epoch: int = 200

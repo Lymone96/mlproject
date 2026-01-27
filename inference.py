@@ -72,8 +72,8 @@ if __name__ == "__main__":
                 updated, new_value = imgui.slider_float(
                     slider_label,
                     sliders_values[i],
-                    min_value=mins_lambda[i],
-                    max_value=maxs_lambda[i]
+                    min_value=mins_lambda[i], # - 2,
+                    max_value=maxs_lambda[i], # + 2,
                 )
                 if updated:
                     sliders_values[i] = new_value
@@ -158,8 +158,8 @@ if __name__ == "__main__":
     if config.add_reference_toggle:
         v.scene.add(ref_vol)
     v.scene.add(pred_vol)
-    # v.scene.add(points)
-    # v.scene.camera.position = (-2, 4, 10)
-    # v.scene.camera.target = (4, 1, 1)
-    # v.auto_set_camera_target = False
+    v.scene.add(points)
+    v.scene.camera.position = (-2, 4, 10)
+    v.scene.camera.target = (4, 1, 1)
+    v.auto_set_camera_target = False
     v.run()

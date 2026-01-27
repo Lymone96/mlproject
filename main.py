@@ -11,6 +11,9 @@ from dataset import load_txt_shapes
 
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 
+
+torch.cuda.manual_seed_all(seed=42)
+
 config = Config()
 
 device = config.device
@@ -22,6 +25,8 @@ model = DeepSDFModel(
     config.output_values,
     config.activation_function,
 )
+
+
 
 class ShapeDataset(Dataset):
     def __init__(self, directory: Path, device):
@@ -36,27 +41,26 @@ class ShapeDataset(Dataset):
             sid_samples.append(sids)
             xyz_samples.append(xyz_sdf[:, :3])
             targets.append(xyz_sdf[:, 3])
-        
+            a = 1
         self.xyz_samples = torch.concat(xyz_samples).to(device)
         self.sid_samples = torch.concat(sid_samples).to(device)
         self.targets = torch.concat(targets).to(device)
-    
+
+
     def __len__(self):
         return self.xyz_samples.shape[0]
 
     def __getitem__(self, index):
         return (self.xyz_samples[index], self.sid_samples[index]), self.targets[index]
-    
+
 
 dataset = ShapeDataset(Path(config.dataset_directory), device)
 training_set, validation_set, test_set = torch.utils.data.random_split(dataset, [config.train_ratio, config.val_ratio, config.test_ratio])
 
-# print(len(training_set))
-# print(len(validation_set))
-# print(len(test_set))
+
 
 latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
-nn.init.normal_(latents.weight, mean=0.0, std=0.01)
+nn.init.normal_(latents.weight, mean=0.0, std=1)
 
 if not config.train_new_model:
     model.load_state_dict(torch.load(Path(config.checkpoints_directory, config.model_filename)))
@@ -75,12 +79,9 @@ opt = torch.optim.Adam(
 writer = SummaryWriter("tensorboard")
 
 
-def sdf_loss(pred, sdf, delta, w, tau):
-    if delta is not None:
-        pred = pred.clamp(-delta, delta)
-        sdf = sdf.clamp(-delta, delta)
+def sdf_loss(pred, sdf, w):
     a = sdf.abs()
-    ww = 1.0 + w * torch.exp(-a / tau)
+    ww = 1.0 + w * torch.exp(-a)
     return (ww * (pred - sdf).abs()).mean()
 
 def latent_loss(latent, alpha):
@@ -104,12 +105,11 @@ for epoch in range(config.epochs):
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
 
-        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.surface_w) + latent_loss(embedding, config.latent_l2)
 
         loss.backward()
         opt.step()
         opt.zero_grad(set_to_none=True)
-        # opt.zero_grad()
 
         training_losses.append(loss.cpu().item())
 
@@ -123,7 +123,7 @@ for epoch in range(config.epochs):
         embedding = latents(s)
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
-        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.surface_w) + latent_loss(embedding, config.latent_l2)
 
         validation_losses.append(loss.mean().cpu().item())
 
@@ -136,8 +136,7 @@ for epoch in range(config.epochs):
     print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
 
 
-# Model Export 
-
+# Model Export
 def save_network_and_latents(model, latents):
 
     torch.save(model, Path(config.checkpoints_directory, config.model_filename))
