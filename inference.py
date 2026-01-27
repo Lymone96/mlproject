@@ -2,6 +2,7 @@ import numpy as np
 
 from aitviewer.configuration import CONFIG as C
 C.update_conf({"z_up": True})
+# C.update_conf({"window_type": "pyglet"})
 
 from aitviewer.renderables.volume import Volume
 from aitviewer.renderables.point_clouds import PointClouds
@@ -130,7 +131,7 @@ if __name__ == "__main__":
         pred = pred.reshape(shape)
 
         # Here there are a few hardcoded parameters: x,y,z order and assumption that the domain is symmetrically distributed around the origin  
-        ref_vol = Volume(reference, size, level, color=(0.5, 0, 0, 1.0), name="ref", position=(-size[0] * 0.5, -size[1] * 0.5, -size[2] * 0.5))
+        ref_vol = Volume(reference, size, level, color=(0.5, 0, 0, 1.0), name="ref", position=(-size[0] * 0.5, -size[1] * 0.5, -size[2] * 0.5), max_triangles=int(10**6), max_vertices=int(10**6))
 
     else:
         latents = torch.empty(pts.shape[0], lambda_dimension).to(device)
@@ -144,10 +145,11 @@ if __name__ == "__main__":
         pred = pred.reshape(shape)
 
     # Here there are a few hardcoded parameters: x,y,z order and assumption that the domain is symmetrically distributed around the origin  
-    pred_vol = Volume(pred.cpu().numpy(), size, level, color=(0.0, 0.5, 0, 1.0), name="pred", position=(-size[0] * 0.5, -size[1] * 0.5, -size[2] * 0.5)) # position=(5, 0, 0))
+    pred_vol = Volume(pred.cpu().numpy(), size, level, color=(0.0, 0.5, 0, 1.0), name="pred", position=(-size[0] * 0.5, -size[1] * 0.5, -size[2] * 0.5), max_triangles=int(10**6), max_vertices=int(10**6)) # position=(5, 0, 0))
+    # print(pred.shape)
 
     # Visualize grid - Sanity check 
-    points = PointClouds(pts_np.reshape(1, -1, 3))
+    # points = PointClouds(pts_np.reshape(1, -1, 3))
 
     v = Viewer()
 
