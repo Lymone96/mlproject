@@ -44,8 +44,8 @@ class Config:
     validation_steps_per_epoch: int = 200
 
     # -------------------- Visualization settings --------------------
-    per_axis_domain_length = 1 #From -0.5 to +0.5 by dataset settings
-    per_axis_sample_number = 25 #Grid sample size (#x,#y,#z) is (100,100,100) by dataset settings
-    add_reference_toggle = False
-    reference_sample_name = "Box-G25-2.txt"
+    per_axis_domain_length: int = 1  #From -0.5 to +0.5 by dataset settings
+    per_axis_sample_number: int = 100 #Grid sample size (#x,#y,#z) is (100,100,100) by dataset settings
+    add_reference_toggle: bool = True
+    reference_sample_name: str = "WindFloat-1.txt"
 
