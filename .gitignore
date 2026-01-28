@@ -6,3 +6,4 @@ __pycache__
 scratchpad.py
 imgui.ini
 /looped_training_results/*
+/visualizations_testing
