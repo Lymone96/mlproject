@@ -1,5 +1,5 @@
 # Dependencies
-- This project is mainly based on `pytorch`. `numpy` and `pandas` are also used for data handling and manipulation.
+- This project is based on `pytorch` library. `numpy` and `pandas` are also used for data handling and manipulation.
 - AIT viewer - https://github.com/eth-ait/aitviewer  
 	It may be worth mentioning that the latest version produced a few issues that were solved by installing the dev branch through the following command:
 	`pip install git+https://github.com/eth-ait/aitviewer.git@dev` 
@@ -27,17 +27,20 @@
 *Disclaimer: links are not permanently maintained, they're intended for assessment from course staff*
 
 # (Pre)Trained Models
-- Main models produced during experiments can be found at this link:  
+- Most relevant models resulting from experiments conducted within the project can be found at this link:  
 *Disclaimer: links are not permanently maintained, they're intended for assessment from course staff*
 
-# Usage of this repository
-**Training**
+# Usage of this repository  
+
+**Training**  
 - Set desired properties in `config.py`.
 - Populate `data_storage` folder with desired `.txt` files
 - Run `main.py` to initiate training  
-**Model Saving**
+
+**Model Saving**  
 - If the `save_network` is set to `True`, the script exports both model and latents' embedding according to the naming defined in `config.py`. Default settings are `model.pth` and `latents.pth` exported to the `./checkpoints/` folder.  
-**Inference**
+
+**Inference**  
 - Set visualization properties in the dedicated section of `config.py`. Special attention should be paid to matching the grid discretization of training files and visualization settings.  
 	For the provided dataset:
     - `per_axis_domain_lenght` is always 1. 
