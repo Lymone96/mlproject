@@ -7,10 +7,10 @@
 # Content of this repository
 - `config.py` collects the main properties that the user may want to customize when setting up training of a new model, loading and storage locations and visualization.
 - `main.py` contains the implementation of training loop
-- `model.pY` contains the implementation of the model architecture, as defined in the configuration file
+- `model.py` contains the implementation of the model architecture, as defined in the configuration file
 - `dataset.py`contains the data ingestion function
 - `inference.py` includes the prediction and visualization functions used for reconstruction assessment of the selected model
-- `looped_training.py` - **discontinued** - the purpose of this script was evaluating multiple architecture configurations  
+- `looped_training.py` - discontinued - the purpose of this script was evaluating multiple architecture configurations  
     *the file is included to illustrate the progression of the project but the training loop in this file is not updated to the latest tuning*
 - Folder structure:  
 	- `checkpoints` - default location for model and latents saving
@@ -34,7 +34,7 @@
 **Training**
 - Set desired properties in `config.py`.
 - Populate `data_storage` folder with desired `.txt` files
-- Run `main.py` to initiate training
+- Run `main.py` to initiate training  
 **Model Saving**
 - If the `save_network` is set to `True`, the script exports both model and latents' embedding according to the naming defined in `config.py`. Default settings are `model.pth` and `latents.pth` exported to the `./checkpoints/` folder.  
 **Inference**
