@@ -6,10 +6,11 @@ class Config:
     dataset_directory: str = "./data_storage/"
     checkpoints_directory_model: str = "./checkpoints/models"
     checkpoints_directory_latent: str = "./checkpoints/latents"
+    looped_training_directory: str = "./looped_training_results"
     model_filename: str = "model10.pth"
     latent_filename: str = "latent10.pth"
     train_new_model: bool = True
-    save_network: bool = True 
+    save_network: bool = True
 
     # -------------------- Dataset settings --------------------
     train_ratio: float = 0.7
@@ -28,6 +29,7 @@ class Config:
 
     # Device
     device: str = "cuda"  # "cuda" or "cpu"
+    cuda_manual_seed: bool = True
 
     # Optimization
     lr_model: float = 1e-3
@@ -35,8 +37,8 @@ class Config:
 
     # Loss
     latent_l2: float = 1e-4
-    sdf_clamp_lb: float = -5
-    sdf_clamp_ub: float = 5
+    # sdf_clamp_lb: float = -5 # Clamped loss function was discontinued 
+    # sdf_clamp_ub: float = 5  # Clamped loss function was discontinued 
     surface_w: float = 5
 
     # Sampling
@@ -46,8 +48,8 @@ class Config:
     validation_steps_per_epoch: int = 200
 
     # -------------------- Visualization settings --------------------
-    per_axis_domain_length = 1 #From -0.5 to +0.5 by dataset settings
-    per_axis_sample_number = 50 #Grid sample size (#x,#y,#z) is (100,100,100) by dataset settings
-    add_reference_toggle = False
-    reference_sample_name = "Cylinder0.txt"
+    per_axis_domain_length: int = 1  #From -0.5 to +0.5 by dataset settings
+    per_axis_sample_number: int = 25 #Grid sample size (#x,#y,#z) is (100,100,100) by dataset settings
+    add_reference_toggle: bool = True
+    reference_sample_name: str = "Cylinder-G25-0.txt"
 

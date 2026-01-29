@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 from pathlib import Path
-from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from typing import Dict, Tuple
 
@@ -15,6 +14,9 @@ from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 torch.cuda.manual_seed_all(seed=42)
 
 config = Config()
+
+if config.cuda_manual_seed == True:
+    torch.cuda.manual_seed_all(seed=42)
 
 device = config.device
 
@@ -39,24 +41,21 @@ class ShapeDataset(Dataset):
             sid_samples.append(sids)
             xyz_samples.append(xyz_sdf[:, :3])
             targets.append(xyz_sdf[:, 3])
-        
         self.xyz_samples = torch.concat(xyz_samples).to(device)
         self.sid_samples = torch.concat(sid_samples).to(device)
         self.targets = torch.concat(targets).to(device)
-    
+
+
     def __len__(self):
         return self.xyz_samples.shape[0]
 
     def __getitem__(self, index):
         return (self.xyz_samples[index], self.sid_samples[index]), self.targets[index]
-    
+
 
 dataset = ShapeDataset(Path(config.dataset_directory), device)
 training_set, validation_set, test_set = torch.utils.data.random_split(dataset, [config.train_ratio, config.val_ratio, config.test_ratio])
 
-# print(len(training_set))
-# print(len(validation_set))
-# print(len(test_set))
 
 latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
 nn.init.normal_(latents.weight, mean=0.0, std=1)
@@ -75,13 +74,16 @@ opt = torch.optim.Adam(
     ]
 )
 
-writer = SummaryWriter("tensorboard")
+# Clamped version of the loss function - discontinued
+# def sdf_loss(pred, sdf, lower_bound, upper_bound, w):
+#     if lower_bound is not None:
+#         pred = pred.clamp(lower_bound, upper_bound)
+#         sdf = sdf.clamp(lower_bound, upper_bound)
+#         a = sdf.abs()
+#     ww = 1.0 + w * torch.exp(-a)
+#     return (ww * (pred - sdf).abs()).mean()
 
-
-def sdf_loss(pred, sdf, lower_bound, upper_bound, w):
-    if lower_bound is not None:
-        pred = pred.clamp(lower_bound, upper_bound)
-        sdf = sdf.clamp(lower_bound, upper_bound)
+def sdf_loss(pred, sdf, w):
     a = sdf.abs()
     ww = 1.0 + w * torch.exp(-a)
     return (ww * (pred - sdf).abs()).mean()
@@ -107,12 +109,14 @@ for epoch in range(config.epochs):
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
 
-        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp_lb, config.sdf_clamp_ub, config.surface_w) + latent_loss(embedding, config.latent_l2)
+        
+        # Clamped version of the loss function - discontinued
+        # loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp_lb, config.sdf_clamp_ub, config.surface_w) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.surface_w) + latent_loss(embedding, config.latent_l2)
 
         loss.backward()
         opt.step()
         opt.zero_grad(set_to_none=True)
-        # opt.zero_grad()
 
         training_losses.append(loss.cpu().item())
 
@@ -126,21 +130,19 @@ for epoch in range(config.epochs):
         embedding = latents(s)
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
-        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp_lb, config.sdf_clamp_ub, config.surface_w) + latent_loss(embedding, config.latent_l2)
+        # Clamped version of the loss function - discontinued
+        # loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp_lb, config.sdf_clamp_ub, config.surface_w) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.surface_w) + latent_loss(embedding, config.latent_l2)
 
         validation_losses.append(loss.mean().cpu().item())
 
     training_loss = np.array(training_losses).mean()
     validation_loss = np.array(validation_losses).mean()
 
-    writer.add_scalar("Loss/training", training_loss, epoch)
-    writer.add_scalar("Loss/validation", validation_loss, epoch)
-
     print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
 
 
-# Model Export 
-
+# Model Export
 def save_network_and_latents(model, latents):
 
     torch.save(model, Path(config.checkpoints_directory_model, config.model_filename))
@@ -148,5 +150,3 @@ def save_network_and_latents(model, latents):
 
 if config.save_network:
     save_network_and_latents(model, latents)
-
-writer.close()
