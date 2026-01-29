@@ -10,7 +10,8 @@ from dataset import load_txt_shapes
 
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 
-
+best_validation_loss = float("inf")
+passed_epochs = 0
 torch.cuda.manual_seed_all(seed=42)
 
 config = Config()
@@ -141,6 +142,15 @@ for epoch in range(config.epochs):
 
     print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
 
+
+    if validation_loss < best_validation_loss:
+        best_validation_loss = validation_loss
+        passed_epochs = 0
+    else:
+        passed_epochs += 1
+        if passed_epochs >= config.max_passed_epochs:
+            print(f"early stopping at {epoch + 1}")
+            break
 
 # Model Export
 def save_network_and_latents(model, latents):

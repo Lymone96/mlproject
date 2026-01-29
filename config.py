@@ -38,8 +38,6 @@ class Config:
 
     # Loss
     latent_l2: float = 1e-4
-    # sdf_clamp_lb: float = -5 # Clamped loss function was discontinued 
-    # sdf_clamp_ub: float = 5  # Clamped loss function was discontinued 
     surface_w: float = 5
 
     # Sampling
@@ -47,6 +45,9 @@ class Config:
     batch_size: int = 2048
     train_steps_per_epoch: int = 200
     validation_steps_per_epoch: int = 200
+
+    # Earlier stopping
+    max_passed_epochs: int = 5
 
     # -------------------- Visualization settings --------------------
     per_axis_domain_length: int = 1  #From -0.5 to +0.5 by dataset settings
