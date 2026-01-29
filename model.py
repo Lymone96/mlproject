@@ -1,4 +1,7 @@
 from torch import nn
+from config import Config
+
+config = Config()
 
 def get_activation(name: str):
     name = name.lower()
@@ -39,7 +42,7 @@ class DeepSDFModel(nn.Module):
         super().__init__()
 
         activation = get_activation(activation_function)
-        dropout = 0.3
+        dropout = config.dropout_rate
 
         layers = []
 

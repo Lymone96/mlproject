@@ -7,8 +7,8 @@ class Config:
     checkpoints_directory_model: str = "./checkpoints/models"
     checkpoints_directory_latent: str = "./checkpoints/latents"
     looped_training_directory: str = "./looped_training_results"
-    model_filename: str = "model10.pth"
-    latent_filename: str = "latent10.pth"
+    model_filename: str = "model.pth"
+    latent_filename: str = "latent.pth"
     train_new_model: bool = True
     save_network: bool = True
 
@@ -24,6 +24,7 @@ class Config:
     hidden_layers_neurons: int = 128
     output_values: int = 1
     activation_function: str = "leakyrelu"
+    dropout_rate: float = 0.3
 
     # -------------------- Training settings --------------------
 

@@ -41,141 +41,151 @@ class ShapeDataset_training_loop(Dataset):
 
 
 if __name__ == "__main__":
-    torch.cuda.manual_seed_all(seed=42)
+    results = {}
+    number_of_neurons = [32, 64, 128, 256, 512]
+    number_of_hidden_layers = [1, 2, 3, 4]
     rows = []
-    surface_w_values = [5, 7, 9, 11, 20, 50]
-    for surface_w in surface_w_values:
-        config.surface_w = surface_w
+    for number_of_hidden_layer in number_of_hidden_layers:
 
-        print(f"start test for : {surface_w}")
-        # config.latent_dim = latent_dimension
-        model = DeepSDFModel(
-            config.input_values + config.latent_dim,
-            config.number_of_hidden_layers,
-            config.hidden_layers_neurons,
-            config.output_values,
-            config.activation_function,
-        )
-        device = config.device
+        for number_of_neuron in number_of_neurons:
+            print(f"start test for : {number_of_hidden_layer} hidden layers and {number_of_neuron} neuron")
 
-        dataset = ShapeDataset_training_loop(Path(config.dataset_directory), device)
-        training_set, validation_set, test_set = torch.utils.data.random_split(dataset,
-                                                                               [config.train_ratio, config.val_ratio,
-                                                                                config.test_ratio])
+            config.number_of_neurons = number_of_neuron
+            config.number_of_hidden_layer = number_of_hidden_layer
+            model = DeepSDFModel(
+                config.input_values + config.latent_dim,
+                config.number_of_hidden_layers,
+                config.hidden_layers_neurons,
+                config.output_values,
+                config.activation_function,
+            )
+            device = config.device
 
-        latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
-        nn.init.normal_(latents.weight, mean=0.0, std=0.01)
+            dataset = ShapeDataset_training_loop(Path(config.dataset_directory), device)
+            training_set, validation_set, test_set = torch.utils.data.random_split(dataset,
+                                                                                   [config.train_ratio, config.val_ratio,
+                                                                                    config.test_ratio])
 
-        model.to(device)
-        latents.to(device)
+            latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
+            nn.init.normal_(latents.weight, mean=0.0, std=0.01)
 
-        opt = torch.optim.Adam(
-            [
-                {"params": model.parameters(), "lr": config.lr_model},
-                {"params": latents.parameters(), "lr": config.lr_latent},
-            ]
-        )
+            model.to(device)
+            latents.to(device)
 
-        def sdf_loss(pred, sdf, delta, w, tau):
-            if delta is not None:
-                pred = pred.clamp(-delta, delta)
-                sdf = sdf.clamp(-delta, delta)
-            a = sdf.abs()
-            ww = 1.0 + w * torch.exp(-a / tau)
-            return (ww * (pred - sdf).abs()).mean()
+            opt = torch.optim.Adam(
+                [
+                    {"params": model.parameters(), "lr": config.lr_model},
+                    {"params": latents.parameters(), "lr": config.lr_latent},
+                ]
+            )
 
 
-        def latent_loss(latent, alpha):
-            return alpha * latent.pow(2).mean()
+
+            def sdf_loss(pred, sdf, delta, w, tau):
+                if delta is not None:
+                    pred = pred.clamp(-delta, delta)
+                    sdf = sdf.clamp(-delta, delta)
+                a = sdf.abs()
+                ww = 1.0 + w * torch.exp(-a / tau)
+                return (ww * (pred - sdf).abs()).mean()
 
 
-        training_loss_history = []
-        validation_loss_history = []
+            def latent_loss(latent, alpha):
+                return alpha * latent.pow(2).mean()
 
-        for epoch in range(config.epochs):
-            training_losses = []
-            validation_losses = []
 
-            opt.zero_grad()
+            training_loss_history = []
+            validation_loss_history = []
 
-            # Training
-            model.train()
-            training_dataloader = DataLoader(training_set, config.batch_size, shuffle=True)
-            for i, ((x, s), t) in enumerate(training_dataloader):
-                if i == config.train_steps_per_epoch:
-                    break
+            for epoch in range(config.epochs):
+                training_losses = []
+                validation_losses = []
 
-                embedding = latents(s)
-                xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
-                pred = model(xyz_lambda)
+                opt.zero_grad()
 
-                loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w,
-                                config.surface_tau) + latent_loss(embedding, config.latent_l2)
+                # Training
+                model.train()
+                training_dataloader = DataLoader(training_set, config.batch_size, shuffle=True)
+                for i, ((x, s), t) in enumerate(training_dataloader):
+                    if i == config.train_steps_per_epoch:
+                        break
 
-                loss.backward()
-                opt.step()
-                opt.zero_grad(set_to_none=True)
-                # opt.zero_grad()
+                    embedding = latents(s)
+                    xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
+                    pred = model(xyz_lambda)
 
-                training_losses.append(loss.detach().cpu().item())
+                    loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w,
+                                    config.surface_tau) + latent_loss(embedding, config.latent_l2)
 
-            # Validation
-            model.eval()
-            validation_dataloader = DataLoader(validation_set, config.batch_size, shuffle=False)
-            for i, ((x, s), t) in enumerate(validation_dataloader):
-                if i == config.validation_steps_per_epoch:
-                    break
+                    loss.backward()
+                    opt.step()
+                    opt.zero_grad(set_to_none=True)
+                    # opt.zero_grad()
 
-                embedding = latents(s)
-                xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
-                pred = model(xyz_lambda)
-                loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w,
-                                config.surface_tau) + latent_loss(embedding, config.latent_l2)
+                    training_losses.append(loss.detach().cpu().item())
 
-                validation_losses.append(loss.detach().cpu().item())
+                # Validation
+                model.eval()
+                validation_dataloader = DataLoader(validation_set, config.batch_size, shuffle=False)
+                for i, ((x, s), t) in enumerate(validation_dataloader):
+                    if i == config.validation_steps_per_epoch:
+                        break
 
-            training_loss = float(np.mean(training_losses)) if training_losses else float("nan")
-            validation_loss = float(np.mean(validation_losses)) if validation_losses else float("nan")
+                    embedding = latents(s)
+                    xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
+                    pred = model(xyz_lambda)
+                    loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w,
+                                    config.surface_tau) + latent_loss(embedding, config.latent_l2)
 
-            rows.append({
-                "layers": config.number_of_hidden_layers,
-                "neurons": config.hidden_layers_neurons,
-                "epoch": epoch + 1,
-                "train_loss": float(training_loss),
-                "val_loss": float(validation_loss),
-                "batch_size": config.batch_size,
-                "lr_model": config.lr_model,
-                "lr_latent": config.lr_latent,
-                "latent_dim": config.latent_dim,
-            })
+                    validation_losses.append(loss.detach().cpu().item())
 
-            print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
+                training_loss = float(np.mean(training_losses)) if training_losses else float("nan")
+                validation_loss = float(np.mean(validation_losses)) if validation_losses else float("nan")
 
-        print(f"write {surface_w} dimension")
+                rows.append({
+                    "layers": number_of_hidden_layer,
+                    "neurons": number_of_neuron,
+                    "epoch": epoch + 1,
+                    "train_loss": float(training_loss),
+                    "val_loss": float(validation_loss),
+                    "batch_size": config.batch_size,
+                    "lr_model": config.lr_model,
+                    "lr_latent": config.lr_latent,
+                    "latent_dim": config.latent_dim,
+                })
 
-        directory = Path(config.looped_training_directory)
+                # training_loss_history.append(training_loss)
+                # validation_loss_history.append(validation_loss)
 
-        folder_name = f"network_with_{surface_w}_surface"
+                print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
 
-        out_dir = directory / folder_name
-        out_dir.mkdir(parents=True, exist_ok=True)
+            print(f"write {number_of_hidden_layer} hidden layers and {number_of_neuron} neuron to pickle")
+            results[f"number_of_neurons_{number_of_hidden_layer}_{number_of_neuron}"] = {
+                "validation_loss": validation_loss_history,
+                "training_loss": training_loss_history,
+            }
 
-        model_filename = "model.pth"
-        latent_filename = "latent.pth"
+            directory = Path( r"./")
 
-        model_path = out_dir / model_filename
-        latent_path = out_dir / latent_filename
+            folder_name = f"network_with_{number_of_hidden_layer}_layers_{number_of_neuron}_neurons"
 
-        torch.save(model, model_path)
-        torch.save(latents.state_dict(), latent_path)
+            out_dir = directory / folder_name
+            out_dir.mkdir(parents=True, exist_ok=True)
 
-    file_name = f"for_40_epochs_latent_dim.pickle"
-    file_path = directory / file_name
+            model_filename = "model1.pth"
+            latent_filename = "latent1.pth"
+
+            model_path = out_dir / model_filename
+            latent_path = out_dir / latent_filename
+
+            torch.save(model, model_path)
+            torch.save(latents.state_dict(), latent_path)
+
+    folder_path = Path(r"./")
+    folder_path.mkdir(parents=True, exist_ok=True)
+    file_name = f"for_40_epochs.pickle"
+    file_path = folder_path / file_name
 
     df = pd.DataFrame(rows)
     df.to_pickle(file_path)
 
-    # with open(file_path, "wb") as handle:
-    #     pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    # print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")

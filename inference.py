@@ -1,11 +1,11 @@
-import os
+# !remove import os
 # !remove os.environ["MODERNGL_WINDOW"] = "pyglet"
 # !remove os.environ.pop("QT_QPA_PLATFORM", None)
 import numpy as np
 
 from aitviewer.configuration import CONFIG as C
 C.update_conf({"z_up": True})
-# C.update_conf({"window_type": "pyglet"})
+C.update_conf({"window_type": "pyglet"})
 
 from aitviewer.renderables.volume import Volume
 from aitviewer.renderables.point_clouds import PointClouds
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     latent_matrix = nn.Embedding(num_of_shapes, lambda_dimension).to(device)
     latent_matrix.load_state_dict(latent_matrix_state_dict)
-    sliders_values = latent_matrix.weight[0].detach().cpu().tolist()
+    sliders_values = latent_matrix.weight[0].detach().cpu().tolist() # Alternative to sliders preset below
 
 
     # Load reference training shape
@@ -114,6 +114,9 @@ if __name__ == "__main__":
                     # Update volume in renderable
                     pred_vol.volume = new_pred.reshape(shape).cpu().numpy()
         imgui.end()
+    
+    # slider_preset = 0.0
+    # sliders_values = [slider_preset for i in range(lambda_dimension)]
 
     # Reference selection and data loading
     if config.add_reference_toggle:
