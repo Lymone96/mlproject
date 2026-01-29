@@ -1,3 +1,6 @@
+import os
+# !remove os.environ["MODERNGL_WINDOW"] = "pyglet"
+# !remove os.environ.pop("QT_QPA_PLATFORM", None)
 import numpy as np
 
 from aitviewer.configuration import CONFIG as C
@@ -23,10 +26,10 @@ if __name__ == "__main__":
     config = Config()
     device = config.device
 
-    model = torch.load(Path(config.checkpoints_directory, config.model_filename), weights_only=False, map_location=torch.device(device))
+    model = torch.load(Path(config.checkpoints_directory_model, config.model_filename), weights_only=False, map_location=torch.device(device))
     model.eval()
 
-    latent_matrix_state_dict = torch.load(Path(config.checkpoints_directory, config.latent_filename), map_location=torch.device(device))
+    latent_matrix_state_dict = torch.load(Path(config.checkpoints_directory_latent, config.latent_filename), map_location=torch.device(device), weights_only=True)
     num_of_shapes, lambda_dimension = latent_matrix_state_dict["weight"].shape
 
     # Add min and max for each lambda parameter
@@ -40,6 +43,7 @@ if __name__ == "__main__":
 
     latent_matrix = nn.Embedding(num_of_shapes, lambda_dimension).to(device)
     latent_matrix.load_state_dict(latent_matrix_state_dict)
+    sliders_values = latent_matrix.weight[0].detach().cpu().tolist()
 
 
     # Load reference training shape
@@ -61,7 +65,7 @@ if __name__ == "__main__":
     def gui_lambda_expanded():
         global sliders_values
         imgui.set_next_window_position(500, 50, imgui.FIRST_USE_EVER)
-        imgui.set_next_window_size(250, 400, imgui.FIRST_USE_EVER)
+        imgui.set_next_window_size(250, 800, imgui.FIRST_USE_EVER)
 
         if imgui.begin("Lambda Control")[0]:
             updated_any = False
@@ -111,9 +115,6 @@ if __name__ == "__main__":
                     pred_vol.volume = new_pred.reshape(shape).cpu().numpy()
         imgui.end()
 
-    slider_preset = 0.0
-    sliders_values = [slider_preset for i in range(lambda_dimension)]
-
     # Reference selection and data loading
     if config.add_reference_toggle:
 
@@ -144,6 +145,14 @@ if __name__ == "__main__":
 
         pred = pred.reshape(shape)
 
+    with torch.no_grad():
+        pred_flat = pred.reshape(-1)
+        print("pred stats:", # !remove 
+            "min", float(pred_flat.min()),
+            "max", float(pred_flat.max()),
+            "mean", float(pred_flat.mean()),
+            "frac<0", float((pred_flat < 0).float().mean()))
+
     # Here there are a few hardcoded parameters: x,y,z order and assumption that the domain is symmetrically distributed around the origin  
     pred_vol = Volume(pred.cpu().numpy(), size, level, color=(0.0, 0.5, 0, 1.0), name="pred", position=(-size[0] * 0.5, -size[1] * 0.5, -size[2] * 0.5), max_triangles=int(10**6), max_vertices=int(10**6)) # position=(5, 0, 0))
     # print(pred.shape)
@@ -152,6 +161,7 @@ if __name__ == "__main__":
     # points = PointClouds(pts_np.reshape(1, -1, 3))
 
     v = Viewer()
+    print("Window class:", type(v.window)) # !remove
 
     v.gui_controls["lambda vector"] = gui_lambda_expanded
     v.gui_controls.pop("playback", None)

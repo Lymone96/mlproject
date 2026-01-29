@@ -3,11 +3,12 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # ------------------- Paths ------------------------
-    dataset_directory: str = r"./data_storage"
-    checkpoints_directory: str = r"./checkpoints"
-    looped_training_directory: str = r"./looped_training_results"
-    model_filename: str = "model.pth"
-    latent_filename: str = "latent.pth"
+    dataset_directory: str = "./data_storage/"
+    checkpoints_directory_model: str = "./checkpoints/models"
+    checkpoints_directory_latent: str = "./checkpoints/latents"
+    looped_training_directory: str = "./looped_training_results"
+    model_filename: str = "model10.pth"
+    latent_filename: str = "latent10.pth"
     train_new_model: bool = True
     save_network: bool = True
 
@@ -36,6 +37,8 @@ class Config:
 
     # Loss
     latent_l2: float = 1e-4
+    # sdf_clamp_lb: float = -5 # Clamped loss function was discontinued 
+    # sdf_clamp_ub: float = 5  # Clamped loss function was discontinued 
     surface_w: float = 5
 
     # Sampling
