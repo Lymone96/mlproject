@@ -11,6 +11,9 @@ from dataset import load_txt_shapes
 
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 
+
+torch.cuda.manual_seed_all(seed=42)
+
 config = Config()
 
 device = config.device
@@ -56,11 +59,11 @@ training_set, validation_set, test_set = torch.utils.data.random_split(dataset, 
 # print(len(test_set))
 
 latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
-nn.init.normal_(latents.weight, mean=0.0, std=0.01)
+nn.init.normal_(latents.weight, mean=0.0, std=1)
 
 if not config.train_new_model:
-    model.load_state_dict(torch.load(Path(config.checkpoints_directory, config.model_filename)))
-    latents.load_state_dict(torch.load(Path(config.checkpoints_directory, config.latent_filename)))
+    model.load_state_dict(torch.load(Path(config.checkpoints_directory_model, config.model_filename)))
+    latents.load_state_dict(torch.load(Path(config.checkpoints_directory_latent, config.latent_filename)))
 
 model.to(device)
 latents.to(device)
@@ -75,12 +78,12 @@ opt = torch.optim.Adam(
 writer = SummaryWriter("tensorboard")
 
 
-def sdf_loss(pred, sdf, delta, w, tau):
-    if delta is not None:
-        pred = pred.clamp(-delta, delta)
-        sdf = sdf.clamp(-delta, delta)
+def sdf_loss(pred, sdf, lower_bound, upper_bound, w):
+    if lower_bound is not None:
+        pred = pred.clamp(lower_bound, upper_bound)
+        sdf = sdf.clamp(lower_bound, upper_bound)
     a = sdf.abs()
-    ww = 1.0 + w * torch.exp(-a / tau)
+    ww = 1.0 + w * torch.exp(-a)
     return (ww * (pred - sdf).abs()).mean()
 
 def latent_loss(latent, alpha):
@@ -104,7 +107,7 @@ for epoch in range(config.epochs):
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
 
-        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp_lb, config.sdf_clamp_ub, config.surface_w) + latent_loss(embedding, config.latent_l2)
 
         loss.backward()
         opt.step()
@@ -123,7 +126,7 @@ for epoch in range(config.epochs):
         embedding = latents(s)
         xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
         pred = model(xyz_lambda)
-        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w, config.surface_tau) + latent_loss(embedding, config.latent_l2)
+        loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp_lb, config.sdf_clamp_ub, config.surface_w) + latent_loss(embedding, config.latent_l2)
 
         validation_losses.append(loss.mean().cpu().item())
 
@@ -140,8 +143,8 @@ for epoch in range(config.epochs):
 
 def save_network_and_latents(model, latents):
 
-    torch.save(model, Path(config.checkpoints_directory, config.model_filename))
-    torch.save(latents.state_dict(), Path(config.checkpoints_directory, config.latent_filename))
+    torch.save(model, Path(config.checkpoints_directory_model, config.model_filename))
+    torch.save(latents.state_dict(), Path(config.checkpoints_directory_latent, config.latent_filename))
 
 if config.save_network:
     save_network_and_latents(model, latents)
