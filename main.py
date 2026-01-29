@@ -1,3 +1,5 @@
+import copy
+
 import torch
 from torch import nn
 from pathlib import Path
@@ -145,11 +147,15 @@ for epoch in range(config.epochs):
 
     if validation_loss < best_validation_loss:
         best_validation_loss = validation_loss
+        best_model = copy.deepcopy(model)
+        best_latents = copy.deepcopy(latents)
         passed_epochs = 0
     else:
         passed_epochs += 1
         if passed_epochs >= config.max_passed_epochs:
-            print(f"early stopping at {epoch + 1}")
+            print(f"early stopping after {epoch - passed_epochs} epochs with {best_validation_loss:12.6f}")
+            model = best_model
+            latents = best_latents
             break
 
 # Model Export
