@@ -37,11 +37,12 @@ class DeepSDFModel(nn.Module):
             number_of_hidden_layers: int,
             hidden_layers_neurons: int,
             output_values: int,
-            activation_function: str,
+            hidden_activation_function: str,
+            output_activation_function: str
     ):
         super().__init__()
 
-        activation = get_activation(activation_function)
+        activation = get_activation(hidden_activation_function)
         dropout = config.dropout_rate
 
         layers = []
@@ -59,6 +60,9 @@ class DeepSDFModel(nn.Module):
 
         # Last layer → output
         layers.append(nn.Linear(hidden_layers_neurons, output_values))
+        if output_activation_function != "none":
+            output_activation_function = get_activation(output_activation_function)
+            layers.append(output_activation_function)
 
         self.mlp = nn.Sequential(*layers)
 

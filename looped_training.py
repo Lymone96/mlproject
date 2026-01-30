@@ -1,18 +1,18 @@
-import pickle
 from pathlib import Path
 from typing import Tuple, Dict
-
-import numpy as np
-import pandas as pd
-import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-
 from config import Config
 from dataset import load_txt_shapes
 from model import DeepSDFModel
 
+import copy
+import numpy as np
+import pandas as pd
+import torch
+
 config = Config()
+patience = 5  # Number of epochs without improvement before stopping
 
 
 class ShapeDataset_training_loop(Dataset):
@@ -41,17 +41,24 @@ class ShapeDataset_training_loop(Dataset):
 
 
 if __name__ == "__main__":
-    results = {}
-    number_of_neurons = [32, 64, 128, 256, 512]
-    number_of_hidden_layers = [1, 2, 3, 4]
+    torch.cuda.manual_seed_all(seed=42)
+
     rows = []
-    for number_of_hidden_layer in number_of_hidden_layers:
-
+    # surface_w_values = [5, 7, 9, 11, 20, 50]
+    number_of_neurons = [512, 256, 128]
+    number_of_layers = [8, 6, 4]
+    for number_of_layer in number_of_layers:
         for number_of_neuron in number_of_neurons:
-            print(f"start test for : {number_of_hidden_layer} hidden layers and {number_of_neuron} neuron")
 
-            config.number_of_neurons = number_of_neuron
-            config.number_of_hidden_layer = number_of_hidden_layer
+            config.number_of_hidden_layers = number_of_layer
+            config.hidden_layers_neurons = number_of_neuron
+
+            passed_epochs = 0
+            best_validation_loss = float('inf')  # Initialize to a very large value
+            patience_counter = 0  # Counter to track the number of epochs without improvement
+
+            print(f"start test for : {number_of_layer} layers and {number_of_neuron} neurons")
+            # config.latent_dim = latent_dimension
             model = DeepSDFModel(
                 config.input_values + config.latent_dim,
                 config.number_of_hidden_layers,
@@ -66,8 +73,10 @@ if __name__ == "__main__":
                                                                                    [config.train_ratio, config.val_ratio,
                                                                                     config.test_ratio])
 
+
+
             latents = nn.Embedding(dataset.num_shapes, config.latent_dim)
-            nn.init.normal_(latents.weight, mean=0.0, std=0.01)
+            nn.init.normal_(latents.weight, mean=0.0, std=1)
 
             model.to(device)
             latents.to(device)
@@ -80,18 +89,14 @@ if __name__ == "__main__":
             )
 
 
-
-            def sdf_loss(pred, sdf, delta, w, tau):
-                if delta is not None:
-                    pred = pred.clamp(-delta, delta)
-                    sdf = sdf.clamp(-delta, delta)
-                a = sdf.abs()
-                ww = 1.0 + w * torch.exp(-a / tau)
-                return (ww * (pred - sdf).abs()).mean()
+            def get_sdf_loss(pred_sdf, target_sdf, w):
+                a = target_sdf.abs()
+                ww = 1.0 + w * torch.exp(-a)
+                return (ww * (pred_sdf - target_sdf).abs()).mean()
 
 
-            def latent_loss(latent, alpha):
-                return alpha * latent.pow(2).mean()
+            def get_latent_loss(latent, L2_regularization):
+                return L2_regularization * latent.pow(2).mean()
 
 
             training_loss_history = []
@@ -114,15 +119,23 @@ if __name__ == "__main__":
                     xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
                     pred = model(xyz_lambda)
 
-                    loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w,
-                                    config.surface_tau) + latent_loss(embedding, config.latent_l2)
+                    sdf_loss = get_sdf_loss(
+                        pred_sdf=pred,
+                        target_sdf=t.unsqueeze(1),
+                        w=config.surface_w
+                    )
 
-                    loss.backward()
+                    latent_loss = get_latent_loss(
+                        latent=embedding,
+                        L2_regularization=config.latent_l2
+                    )
+
+                    total_training_loss = sdf_loss + latent_loss
                     opt.step()
                     opt.zero_grad(set_to_none=True)
-                    # opt.zero_grad()
 
-                    training_losses.append(loss.detach().cpu().item())
+
+                    training_losses.append(total_training_loss.detach().cpu().item())
 
                 # Validation
                 model.eval()
@@ -134,17 +147,25 @@ if __name__ == "__main__":
                     embedding = latents(s)
                     xyz_lambda = torch.hstack((x, embedding[:, 0, :]))
                     pred = model(xyz_lambda)
-                    loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp, config.surface_w,
-                                    config.surface_tau) + latent_loss(embedding, config.latent_l2)
+                    sdf_loss = get_sdf_loss(
+                        pred_sdf=pred,
+                        target_sdf=t.unsqueeze(1),
+                        w=config.surface_w
+                    )
+                    latent_loss = get_latent_loss(
+                        latent=embedding,
+                        L2_regularization=config.latent_l2
+                    )
+                    total_validation_loss = sdf_loss + latent_loss
 
-                    validation_losses.append(loss.detach().cpu().item())
 
+                validation_losses.append(total_validation_loss.detach().cpu().item())
                 training_loss = float(np.mean(training_losses)) if training_losses else float("nan")
                 validation_loss = float(np.mean(validation_losses)) if validation_losses else float("nan")
 
                 rows.append({
-                    "layers": number_of_hidden_layer,
-                    "neurons": number_of_neuron,
+                    "layers": config.number_of_hidden_layers,
+                    "neurons": config.hidden_layers_neurons,
                     "epoch": epoch + 1,
                     "train_loss": float(training_loss),
                     "val_loss": float(validation_loss),
@@ -154,26 +175,30 @@ if __name__ == "__main__":
                     "latent_dim": config.latent_dim,
                 })
 
-                # training_loss_history.append(training_loss)
-                # validation_loss_history.append(validation_loss)
-
                 print(f"Epoch {epoch + 1}, Training: {training_loss:12.6f} | Validation: {validation_loss:12.6f}")
+                if validation_loss < best_validation_loss:
+                    best_validation_loss = validation_loss
+                    best_model = copy.deepcopy(model)
+                    best_latents = copy.deepcopy(latents)
+                    passed_epochs = 0
+                else:
+                    passed_epochs += 1
+                    if passed_epochs >= config.max_passed_epochs:
+                        print(f"early stopping after {epoch - passed_epochs} epochs with {best_validation_loss:12.6f}")
+                        model = best_model
+                        latents = best_latents
+                        break
 
-            print(f"write {number_of_hidden_layer} hidden layers and {number_of_neuron} neuron to pickle")
-            results[f"number_of_neurons_{number_of_hidden_layer}_{number_of_neuron}"] = {
-                "validation_loss": validation_loss_history,
-                "training_loss": training_loss_history,
-            }
 
-            directory = Path( r"./")
+            directory = Path(config.looped_training_directory)
 
-            folder_name = f"network_with_{number_of_hidden_layer}_layers_{number_of_neuron}_neurons"
+            folder_name = f"network_with_{number_of_layer}_layer_{number_of_neuron}_neuron"
 
             out_dir = directory / folder_name
             out_dir.mkdir(parents=True, exist_ok=True)
 
-            model_filename = "model1.pth"
-            latent_filename = "latent1.pth"
+            model_filename = "model.pth"
+            latent_filename = "latent.pth"
 
             model_path = out_dir / model_filename
             latent_path = out_dir / latent_filename
@@ -181,11 +206,8 @@ if __name__ == "__main__":
             torch.save(model, model_path)
             torch.save(latents.state_dict(), latent_path)
 
-    folder_path = Path(r"./")
-    folder_path.mkdir(parents=True, exist_ok=True)
-    file_name = f"for_40_epochs.pickle"
-    file_path = folder_path / file_name
+            file_name = f"for_epochs_latent_dim.pickle"
+            file_path = directory / file_name
 
-    df = pd.DataFrame(rows)
-    df.to_pickle(file_path)
-
+            df = pd.DataFrame(rows)
+            df.to_pickle(file_path)
