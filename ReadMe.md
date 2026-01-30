@@ -48,7 +48,7 @@
     - `per_axis_sample_number` can be found in the file name according to the above mentioned convention.
 - A reference file from training dataset can also be added through `reference_sample_name`
 
-# Additional Anaylysis - Physics Optimization of generated shapes
+# Additional Analysis - Physics Optimization
 - The code regarding the physics optimization of generated geometries can be found at the following link:  
   https://github.com/santinotudelft/DeepSDF_Physics_Optimization
 
