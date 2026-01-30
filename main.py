@@ -129,7 +129,8 @@ for epoch in range(config.epochs):
         total_training_loss.backward()
         opt.step()
         opt.zero_grad(set_to_none=True)
-
+        
+        
         training_losses.append(total_training_loss.cpu().item())
 
     # Validation

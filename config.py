@@ -20,7 +20,7 @@ class Config:
     # -------------------- Model settings --------------------
     latent_dim: int = 1
     input_values: int = 3
-    number_of_hidden_layers: int = 4
+    number_of_hidden_layers: int = 3
     hidden_layers_neurons: int = 128
     output_values: int = 1
     hidden_activation_function: str = "relu"
