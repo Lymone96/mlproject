@@ -112,6 +112,7 @@ for epoch in range(config.epochs):
         
         # Clamped version of the loss function - discontinued
         # loss = sdf_loss(pred, t.unsqueeze(1), config.sdf_clamp_lb, config.sdf_clamp_ub, config.surface_w) + latent_loss(embedding, config.latent_l2)
+        
         loss = sdf_loss(pred, t.unsqueeze(1), config.surface_w) + latent_loss(embedding, config.latent_l2)
 
         loss.backward()
