@@ -64,8 +64,10 @@ if __name__ == "__main__":
                 config.number_of_hidden_layers,
                 config.hidden_layers_neurons,
                 config.output_values,
-                config.activation_function,
+                config.hidden_activation_function,
+                config.output_activation_function,
             )
+
             device = config.device
 
             dataset = ShapeDataset_training_loop(Path(config.dataset_directory), device)
@@ -131,6 +133,7 @@ if __name__ == "__main__":
                     )
 
                     total_training_loss = sdf_loss + latent_loss
+                    total_training_loss.backward()
                     opt.step()
                     opt.zero_grad(set_to_none=True)
 
