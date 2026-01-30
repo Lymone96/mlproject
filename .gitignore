@@ -1,11 +1,11 @@
 
 *.txt
 __pycache__
-/checkpoints/models/*
-/checkpoints/latents/*
+/checkpoints/models/*.pth
+/checkpoints/latents/*.pth
 /checkpoints/*.pth
 /tensorboard
 scratchpad.py
 imgui.ini
-/looped_training_results/*
-/visualizations_testing
+/looped_training_results/*.pth
+/data_backup/*.pth
