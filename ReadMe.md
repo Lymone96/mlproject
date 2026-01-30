@@ -19,7 +19,8 @@
 	- `looped_traininig_results` - default location to save results from `looped_training.py` 
 
 # Dataset generation and experiments
-- For the purposes of the project the models were trained in a set of experiments. The pertinent datasets and reference `.obj` models can be found at this link: 
+- For the purposes of the project the models were trained in a set of experiments. The pertinent datasets and reference `.obj` models can be found at this link:
+  https://tud365-my.sharepoint.com/:f:/g/personal/gabrielemylono_tudelft_nl/IgC4KS13xlqSTbqy1ZYOc6iaAaYqMej_raNhurVtjdE9xU8?e=pf7QN6
 - Naming convention:  
   `shape_name-grid_resolution-incremental_number.txt`  
   `shape_name-grid_resolution-incremental_number.obj`  
@@ -46,3 +47,9 @@
     - `per_axis_domain_lenght` is always 1. 
     - `per_axis_sample_number` can be found in the file name according to the above mentioned convention.
 - A reference file from training dataset can also be added through `reference_sample_name`
+
+# Additional Anaylysis - Physics Optimization of generated shapes
+- The code regarding the physics optimization of generated geometries can be found at the following link:
+  https://github.com/santinotudelft/DeepSDF_Physics_Optimization
+
+
