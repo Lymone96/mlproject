@@ -3,7 +3,7 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # ------------------- Paths ------------------------
-    dataset_directory: str = "./data_storage/"
+    dataset_directory: str = "./data_storage"
     checkpoints_directory_model: str = "./checkpoints/models"
     checkpoints_directory_latent: str = "./checkpoints/latents"
     looped_training_directory: str = "./looped_training_results"
@@ -23,8 +23,9 @@ class Config:
     number_of_hidden_layers: int = 4
     hidden_layers_neurons: int = 128
     output_values: int = 1
-    activation_function: str = "leakyrelu"
-    dropout_rate: float = 0.3
+    hidden_activation_function: str = "relu"
+    output_activation_function: str = "tanh" # set to "none" if not needed
+    dropout_rate: float = 0.0
 
     # -------------------- Training settings --------------------
 
@@ -46,12 +47,12 @@ class Config:
     train_steps_per_epoch: int = 200
     validation_steps_per_epoch: int = 200
 
-    # Earlier stopping
+    # Early stopping
     max_passed_epochs: int = 5
 
     # -------------------- Visualization settings --------------------
     per_axis_domain_length: int = 1  #From -0.5 to +0.5 by dataset settings
     per_axis_sample_number: int = 25 #Grid sample size (#x,#y,#z) is (100,100,100) by dataset settings
-    add_reference_toggle: bool = True
-    reference_sample_name: str = "Cylinder-G25-0.txt"
+    add_reference_toggle: bool = False
+    reference_sample_name: str = "INSERT_reference_file_name.txt"
 

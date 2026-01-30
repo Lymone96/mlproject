@@ -1,25 +1,19 @@
-# !remove import os
-# !remove os.environ["MODERNGL_WINDOW"] = "pyglet"
-# !remove os.environ.pop("QT_QPA_PLATFORM", None)
+from aitviewer.configuration import CONFIG as C
+from aitviewer.renderables.volume import Volume
+from aitviewer.viewer import Viewer
+from pathlib import Path
+from torch import nn
+from config import Config
+
+import imgui
+import pandas as pd
+import re
+import torch
 import numpy as np
 
-from aitviewer.configuration import CONFIG as C
 C.update_conf({"z_up": True})
 C.update_conf({"window_type": "pyglet"})
 
-from aitviewer.renderables.volume import Volume
-from aitviewer.renderables.point_clouds import PointClouds
-from aitviewer.viewer import Viewer
-import imgui
-import sys
-import pandas as pd
-import re
-
-from pathlib import Path
-import torch
-from torch import nn
-
-from config import Config
 
 
 if __name__ == "__main__":
@@ -33,11 +27,6 @@ if __name__ == "__main__":
     num_of_shapes, lambda_dimension = latent_matrix_state_dict["weight"].shape
 
     # Add min and max for each lambda parameter
-    ### Case 1: multiple training shapes, single lambda  
-    # min_lambda = latent_matrix_state_dict["weight"].max().item()
-    # max_lambda = latent_matrix_state_dict["weight"].min().item()
-
-    ### Case 2: multiple training shapes, multidimensional lambda
     mins_lambda = [latent_matrix_state_dict["weight"][:, j].min().item() for j in range(lambda_dimension)]
     maxs_lambda = [latent_matrix_state_dict["weight"][:, j].max().item() for j in range(lambda_dimension)]
 
@@ -114,9 +103,7 @@ if __name__ == "__main__":
                     # Update volume in renderable
                     pred_vol.volume = new_pred.reshape(shape).cpu().numpy()
         imgui.end()
-    
-    # slider_preset = 0.0
-    # sliders_values = [slider_preset for i in range(lambda_dimension)]
+
 
     # Reference selection and data loading
     if config.add_reference_toggle:
@@ -150,28 +137,21 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         pred_flat = pred.reshape(-1)
-        print("pred stats:", # !remove 
-            "min", float(pred_flat.min()),
-            "max", float(pred_flat.max()),
-            "mean", float(pred_flat.mean()),
-            "frac<0", float((pred_flat < 0).float().mean()))
+
 
     # Here there are a few hardcoded parameters: x,y,z order and assumption that the domain is symmetrically distributed around the origin  
     pred_vol = Volume(pred.cpu().numpy(), size, level, color=(0.0, 0.5, 0, 1.0), name="pred", position=(-size[0] * 0.5, -size[1] * 0.5, -size[2] * 0.5), max_triangles=int(10**6), max_vertices=int(10**6)) # position=(5, 0, 0))
-    # print(pred.shape)
 
-    # Visualize grid - Sanity check 
-    # points = PointClouds(pts_np.reshape(1, -1, 3))
 
     v = Viewer()
-    print("Window class:", type(v.window)) # !remove
+
 
     v.gui_controls["lambda vector"] = gui_lambda_expanded
     v.gui_controls.pop("playback", None)
     if config.add_reference_toggle:
         v.scene.add(ref_vol)
+
     v.scene.add(pred_vol)
-    # v.scene.add(points)
     v.scene.camera.position = (-2, 4, 10)
     v.scene.camera.target = (4, 1, 1)
     v.auto_set_camera_target = False
